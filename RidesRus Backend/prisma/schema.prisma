@@ -1,0 +1,102 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TripStatus {
+  HAILED
+  ON_BOARD
+  COMPLETED
+  CANCELLED
+}
+
+enum TransactionType {
+  WALLET_FUND
+  TRIP_PAYMENT
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model User {
+  id           String        @id @default(uuid())
+  name         String?
+  email        String        @unique
+  phone        String        @unique
+  passwordHash String
+  walletBalance Float        @default(0)
+  trips        Trip[]
+  transactions Transaction[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Driver {
+  id           String        @id @default(uuid())
+  name         String
+  phone        String        @unique
+  passwordHash String
+  activeBusId  String?       @unique
+  activeBus    Bus?          @relation(fields: [activeBusId], references: [id])
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Bus {
+  id             String    @id @default(uuid())
+  plateNumber    String    @unique
+  capacity       Int
+  availableSeats Int
+  currentRouteId String?
+  route          Route?    @relation(fields: [currentRouteId], references: [id])
+  driver         Driver?
+  trips          Trip[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Route {
+  id          String   @id @default(uuid())
+  name        String
+  origin      String
+  destination String
+  baseFare    Float
+  buses       Bus[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Trip {
+  id                 String     @id @default(uuid())
+  passengerId        String
+  passenger          User       @relation(fields: [passengerId], references: [id])
+  busId              String
+  bus                Bus        @relation(fields: [busId], references: [id])
+  originStation      String?
+  destinationStation String?
+  status             TripStatus @default(HAILED)
+  fare               Float?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+}
+
+model Transaction {
+  id          String             @id @default(uuid())
+  userId      String
+  user        User               @relation(fields: [userId], references: [id])
+  type        TransactionType
+  amount      Float
+  status      TransactionStatus  @default(PENDING)
+  reference   String             @unique
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+}

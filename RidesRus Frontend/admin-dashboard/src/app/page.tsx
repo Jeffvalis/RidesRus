@@ -59,7 +59,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     // Connect to NestJS tracking gateway
-    const newSocket = io('http://localhost:3005', { transports: ['websocket'] });
+    const newSocket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3005', { transports: ['websocket'] });
     setSocket(newSocket);
 
     newSocket.on('connect', () => {

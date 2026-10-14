@@ -1,0 +1,41 @@
+# Render Blueprint: API (Docker) + managed Postgres.
+# New → Blueprint → point at this repo. Then set CORS_ORIGINS / PUBLIC_API_URL to the real URLs.
+databases:
+  - name: ridesrus-db
+    plan: free
+    databaseName: ridesrus
+    user: ridesrus
+
+services:
+  - type: web
+    name: ridesrus-api
+    runtime: docker
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3005
+      - key: DATABASE_URL
+        fromDatabase: { name: ridesrus-db, property: connectionString }
+      - key: DATABASE_SSL
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: QR_SECRET
+        generateValue: true
+      - key: DEMO_MODE
+        value: "true"
+      - key: DEMO_SPEEDUP
+        value: "3"
+      - key: PAYMENTS_PROVIDER
+        value: sandbox
+      - key: PUBLIC_API_URL
+        value: https://ridesrus-api.onrender.com
+      - key: CORS_ORIGINS
+        value: https://ridesrus-rider.netlify.app,https://ridesrus-driver.netlify.app,https://ridesrus-hq.netlify.app
+      - key: SEED_ADMIN_PASSWORD
+        sync: false

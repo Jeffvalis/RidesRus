@@ -10,6 +10,7 @@
     "node": ">=22"
   },
   "scripts": {
+    "dev": "node scripts/dev.mjs",
     "build:core": "npm run build -w @ridesrus/core",
     "db:start": "npm run db:start -w @ridesrus/api",
     "db:setup": "npm run db:setup -w @ridesrus/api",

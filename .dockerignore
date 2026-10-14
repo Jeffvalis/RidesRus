@@ -1,0 +1,10 @@
+**/node_modules
+**/dist
+**/dist-web
+**/.next
+**/out
+**/.expo
+.data
+**/.env
+**/.env.local
+.git

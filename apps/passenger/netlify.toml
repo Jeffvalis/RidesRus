@@ -1,0 +1,10 @@
+# Netlify: set "Base directory" to the repo root and "Package directory" to this folder.
+# Environment: EXPO_PUBLIC_API_URL=https://<your-api-host>
+[build]
+  command = "npm run build:core && npm run export:web"
+  publish = "dist-web"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

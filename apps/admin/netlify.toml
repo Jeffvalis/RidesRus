@@ -1,0 +1,5 @@
+# Netlify: set "Base directory" to the repo root and "Package directory" to this folder.
+# Environment: NEXT_PUBLIC_API_URL=https://<your-api-host>
+[build]
+  command = "npm run build:core && npm run build"
+  publish = "out"

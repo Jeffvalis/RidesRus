@@ -27,6 +27,8 @@ npm install
 npm run dev
 ```
 
+On a Mac you can instead double-click **`start-ridesrus.command`**. It runs everything in its own Terminal window and opens the three apps in your browser; close that window to stop.
+
 | | |
 | --- | --- |
 | Passenger app | http://localhost:8081: tap **Try the live demo** |

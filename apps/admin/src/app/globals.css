@@ -1,0 +1,55 @@
+@import 'tailwindcss';
+
+/* RidesRus brand tokens (see packages/core/src/brand.ts), tuned for a dark ops console. */
+@theme {
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --color-bg: #0f1012;
+  --color-panel: #17191c;
+  --color-panel-2: #1f2226;
+  --color-line: #2a2d33;
+  --color-ink: #f2f0ea;
+  --color-ink-soft: #c9c5bc;
+  --color-ink-muted: #8f8b83;
+  --color-brand-yellow: #facc15;
+  --color-brand-yellow-ink: #4d400e;
+  --color-brand-lime: #d9f99d;
+  --color-brand-olive: #656214;
+  --color-brand-blue: #6d8cf5;
+  --color-brand-red: #f05252;
+  --color-brand-green: #84cc16;
+}
+
+html,
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+}
+
+body {
+  font-feature-settings: 'tnum' 1;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand-yellow);
+  outline-offset: 2px;
+}
+
+.leaflet-container {
+  background: #0f1012;
+  font-family: var(--font-sans);
+}
+.leaflet-tooltip.rr-tip {
+  background: #17191c;
+  color: #f2f0ea;
+  border: 1px solid #2a2d33;
+  border-radius: 8px;
+  font-weight: 700;
+  box-shadow: none;
+}
+.leaflet-tooltip.rr-tip::before {
+  display: none;
+}
+
+.rr-dark-tiles {
+  filter: invert(1) hue-rotate(180deg) brightness(0.8) contrast(0.9) saturate(0.3);
+}

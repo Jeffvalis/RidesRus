@@ -67,6 +67,16 @@ export class DriverService {
     return results;
   }
 
+  async sos(driver: DriverPrincipal) {
+    const bus = this.network.bus(driver.busId);
+    const d = await this.prisma.driver.findUnique({ where: { id: driver.sub }, select: { name: true, phone: true } });
+    const pos = this.fleet.position(driver.busId);
+    const near = pos ? this.network.geometryForBus(driver.busId).nearestStop(pos) : null;
+    const where = near ? ` near ${this.network.stopName(near.stopId)}` : '';
+    this.activity.record('SOS', `SOS from ${d?.name ?? 'driver'} on ${bus.code}${where} · call ${d?.phone ?? 'dispatch'}`, bus.code);
+    return { raised: true };
+  }
+
   async endShift(shiftId: string) {
     const shift = await this.prisma.shift.findUnique({ where: { id: shiftId }, include: { driver: true, bus: true } });
     if (!shift || shift.endedAt) return { ended: false };

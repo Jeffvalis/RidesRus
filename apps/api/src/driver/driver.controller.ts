@@ -41,6 +41,13 @@ export class DriverController {
     return this.driver.ingestLocation(user, ping);
   }
 
+  /** Panic button: raises a red alert on every Fleet HQ screen with the bus's last position. */
+  @Post('sos')
+  @HttpCode(200)
+  sos(@CurrentUser() user: DriverPrincipal) {
+    return this.driver.sos(user);
+  }
+
   @Post('shift/end')
   @HttpCode(200)
   endShift(@CurrentUser() user: DriverPrincipal) {

@@ -39,7 +39,8 @@ export const CreateHailBody = z.object({
 export type CreateHailBody = z.infer<typeof CreateHailBody>;
 
 export const BoardBody = z.object({
-  qrToken: z.string().min(10).max(300),
+  /** The scanned QR token, or a manual code typed as "RR-102:482913". */
+  qrToken: z.string().trim().min(10).max(300),
   /** Client-generated; retries of the same scan never double-charge. */
   idempotencyKey: z.string().min(8).max(64),
 });
@@ -99,6 +100,8 @@ export type RouteDTO = {
   code: string;
   name: string;
   fareKobo: Kobo;
+  /** Effective speed used for ETAs (already scaled in demo mode), m/s. */
+  avgSpeedMps: number;
   stops: StopDTO[];
   path: { lat: number; lng: number }[];
 };
@@ -180,6 +183,10 @@ export type DriverStateDTO = {
   bus: { id: string; code: string; plate: string; capacity: number };
   route: { id: string; code: string; name: string; fareKobo: Kobo };
   occupied: number;
+  /** Bus position for the console map. */
+  position: { lat: number; lng: number; heading: number; direction: Direction } | null;
+  /** The stop the bus is at right now (within ~150 m), if any. */
+  currentStop: DriverStopGroup | null;
   nextStop: DriverStopGroup | null;
   pickups: (DriverStopGroup & { hailIds: string[]; acknowledged: boolean })[];
   dropoffs: DriverStopGroup[];
@@ -189,13 +196,14 @@ export type DriverStateDTO = {
   todayFareKobo: Kobo;
 };
 
-export type DriverQrDTO = { token: string; expiresAt: number; windowMs: number };
+/** `shortCode` is the 6-digit fallback printed under the QR for riders whose camera won't scan. */
+export type DriverQrDTO = { token: string; shortCode: string; busCode: string; expiresAt: number; windowMs: number };
 
 export type DriverActionResult = { idempotencyKey: string; ok: boolean; error?: string; replayed: boolean };
 
 export type ActivityDTO = {
   id: string;
-  type: 'HAIL' | 'BOARD' | 'DROPOFF' | 'RATING' | 'TOPUP' | 'SHIFT' | 'VOID';
+  type: 'HAIL' | 'BOARD' | 'DROPOFF' | 'RATING' | 'TOPUP' | 'SHIFT' | 'VOID' | 'SOS';
   message: string;
   busCode?: string;
   at: number;

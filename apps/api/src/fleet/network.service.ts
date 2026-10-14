@@ -35,16 +35,17 @@ export class NetworkService implements OnModuleInit {
     this.stops.clear();
     for (const r of routes) {
       const path = r.path as LatLng[];
+      // Demo autopilot runs faster than real time; ETAs use the same clock so they stay truthful on screen.
+      const avgSpeedMps = r.avgSpeedMps * (this.config.DEMO_MODE ? this.config.DEMO_SPEEDUP : 1);
       const dto: RouteDTO = {
         id: r.id,
+        avgSpeedMps,
         code: r.code,
         name: r.name,
         fareKobo: r.fareKobo,
         path,
         stops: r.stops.map((s) => ({ id: s.id, name: s.name, lat: s.lat, lng: s.lng, seq: s.seq })),
       };
-      // Demo autopilot runs faster than real time; ETAs use the same clock so they stay truthful on screen.
-      const avgSpeedMps = r.avgSpeedMps * (this.config.DEMO_MODE ? this.config.DEMO_SPEEDUP : 1);
       this.routes.set(r.id, { dto, geometry: new RouteGeometry({ stops: dto.stops, path, avgSpeedMps }) });
       for (const s of r.stops) this.stops.set(s.id, { ...s, routeId: r.id });
     }

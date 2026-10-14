@@ -100,6 +100,8 @@ export class DriverStateService implements OnModuleInit, OnModuleDestroy {
     }
 
     const next = live ? geometry.nextStop(live.loopPos) : null;
+    // "At" a stop means effectively stopped there; 80 m allows for GPS jitter without offering a stop already passed.
+    const at = this.fleet.stopAtBus(busId, 80);
 
     return {
       shift: { id: shift.id, startedAt: shift.startedAt.getTime(), expiresAt: shift.expiresAt.getTime() },
@@ -107,6 +109,8 @@ export class DriverStateService implements OnModuleInit, OnModuleDestroy {
       bus: { id: bus.id, code: bus.code, plate: bus.plate, capacity: bus.capacity },
       route: { id: route.id, code: route.code, name: route.name, fareKobo: route.fareKobo },
       occupied: this.fleet.occupied(busId),
+      position: live ? { lat: live.lat, lng: live.lng, heading: Math.round(live.heading), direction: live.direction } : null,
+      currentStop: at ? { ...group(at, dropMap.get(at) ?? 0), metres: 0, etaSec: 0 } : null,
       nextStop: next && Number.isFinite(next.metres) ? group(next.stopId, dropMap.get(next.stopId) ?? 0) : null,
       pickups: [...pickupMap.entries()]
         .map(([stopId, g]) => ({ ...group(stopId, g.ids.length), hailIds: g.ids, acknowledged: g.acked }))

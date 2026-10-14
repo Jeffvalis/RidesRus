@@ -101,6 +101,12 @@ describe('boarding, seats and fares', () => {
     await expectCode(trips.board(p.id, { qrToken: good.replace(bus.id, 'some-other-bus'), idempotencyKey: key() }), ErrorCodes.QR_INVALID);
     const old = qr.issue(bus.id, Date.now() - 3 * QR_WINDOW_MS).token;
     await expectCode(trips.board(p.id, { qrToken: old, idempotencyKey: key() }), ErrorCodes.QR_EXPIRED);
+    // Manual fallback: "RR-106 · 482 913" typed from the tablet screen.
+    const { shortCode, busCode } = qr.issue(bus.id);
+    expect(qr.verify(`${busCode} · ${shortCode.slice(0, 3)} ${shortCode.slice(3)}`)).toBe(bus.id);
+    expect(qr.verify(`${busCode.toLowerCase()}:${shortCode}`)).toBe(bus.id);
+    const wrong = String((Number(shortCode) + 1) % 1_000_000).padStart(6, '0');
+    expect(() => qr.verify(`${busCode}:${wrong}`)).toThrow();
     // The previous window is still accepted (clock skew / slow scan).
     const recent = qr.issue(bus.id, Date.now() - QR_WINDOW_MS).token;
     await expect(trips.board(p.id, { qrToken: recent, idempotencyKey: key() })).resolves.toBeDefined();

@@ -163,14 +163,19 @@ export class FleetStateService implements OnModuleInit, OnModuleDestroy {
   setSimulated(busId: string, loopPos: number) {
     const geometry = this.network.geometryForBus(busId);
     const prev = this.live.get(busId);
-    const pos = pointAlong(geometry.path, geometry.cumulative, geometry.linePos(loopPos));
-    const heading = prev && haversine(prev, pos) > 1 ? bearing(prev, pos) : (prev?.heading ?? 90);
+    const line = geometry.linePos(loopPos);
+    const direction = geometry.directionAt(loopPos);
+    const pos = pointAlong(geometry.path, geometry.cumulative, line);
+    // Face the way the bus is about to travel (not where it came from), so a bus
+    // dwelling at a terminus already points back down the corridor.
+    const ahead = pointAlong(geometry.path, geometry.cumulative, direction === 'EASTBOUND' ? line + 15 : line - 15);
+    const heading = haversine(pos, ahead) > 1 ? bearing(pos, ahead) : (prev?.heading ?? 90);
     const next: LiveBus = {
       busId,
       ...pos,
       heading,
       loopPos: geometry.wrap(loopPos),
-      direction: geometry.directionAt(loopPos),
+      direction,
       source: 'SIMULATED',
       updatedAt: Date.now(),
       lastStopId: prev?.lastStopId ?? null,

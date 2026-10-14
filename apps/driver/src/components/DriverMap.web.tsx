@@ -6,6 +6,7 @@ import { brand } from '@ridesrus/core';
 import type { DriverMapProps } from './DriverMap.types';
 
 const CSS = `
+.leaflet-container img.leaflet-tile { mix-blend-mode: normal !important; } /* plus-lighter + filter draws seams */
 .rr-drv-bus { width: 46px; height: 46px; border-radius: 50%; background: ${brand.yellow}; border: 4px solid #fff; display: grid; place-items: center; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
 .rr-drv-bus span { display:block; width:0; height:0; border-left:9px solid transparent; border-right:9px solid transparent; border-bottom:16px solid ${brand.ink}; }
 .rr-drv-icon { transition: transform 1s linear; }

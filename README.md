@@ -10,6 +10,14 @@
 | [`apps/api`](apps/api) | Everything above | NestJS, Socket.IO, Prisma, PostgreSQL |
 | [`packages/core`](packages/core) | Shared by all four | TypeScript: domain rules, route geometry, API and socket contracts |
 
+![Fleet HQ live operations](docs/screenshots/12-fleet-hq-live.png)
+
+| Rider | Driver console | |
+| --- | --- | --- |
+| ![Live map](docs/screenshots/02-live-map.png) | ![Driver console](docs/screenshots/15-driver-console.png) | ![Trip complete](docs/screenshots/09-trip-complete-rate.png) |
+
+More in [`docs/screenshots`](docs/screenshots).
+
 ## Run it
 
 You need Node 22 or newer. Docker isn't required, because Postgres runs from npm.

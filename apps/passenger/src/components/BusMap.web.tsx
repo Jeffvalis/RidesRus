@@ -12,6 +12,7 @@ const BUS_SVG =
 const TILE_URL = process.env.EXPO_PUBLIC_MAP_TILES_URL ?? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
 const CSS = `
+.leaflet-container img.leaflet-tile { mix-blend-mode: normal !important; } /* plus-lighter + filter draws seams */
 [data-rr-map] .leaflet-tile-pane { filter: saturate(0.55) sepia(0.12) brightness(1.03); }
 .rr-bus-icon { transition: transform 1s linear; }
 .leaflet-zoom-anim .rr-bus-icon { transition: none; }

@@ -1,5 +1,5 @@
 import { Inject, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { DriverStateDTO, DriverStopGroup, shortName } from '@ridesrus/core';
+import { DriverStateDTO, DriverStopGroup, STOP_ARRIVAL_RADIUS_M, shortName } from '@ridesrus/core';
 import { APP_CONFIG, AppConfig } from '../config';
 import { FleetStateService } from '../fleet/fleet-state.service';
 import { NetworkService } from '../fleet/network.service';
@@ -100,8 +100,8 @@ export class DriverStateService implements OnModuleInit, OnModuleDestroy {
     }
 
     const next = live ? geometry.nextStop(live.loopPos) : null;
-    // "At" a stop means effectively stopped there; 80 m allows for GPS jitter without offering a stop already passed.
-    const at = this.fleet.stopAtBus(busId, 80);
+    // "At" a stop means within the arrival radius, so the console never offers a stop the bus has already left.
+    const at = this.fleet.stopAtBus(busId, STOP_ARRIVAL_RADIUS_M);
 
     return {
       shift: { id: shift.id, startedAt: shift.startedAt.getTime(), expiresAt: shift.expiresAt.getTime() },

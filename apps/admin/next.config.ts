@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   output: 'export',
   transpilePackages: ['@ridesrus/core'],
   images: { unoptimized: true },
+  devIndicators: false,
 };
 
 export default nextConfig;

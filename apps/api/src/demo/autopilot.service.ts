@@ -99,6 +99,7 @@ export class AutopilotService implements OnApplicationBootstrap, OnModuleDestroy
         if (sim.atStopId) await this.depart(sim);
         this.advance(sim);
       }
+      await this.acknowledgeForDriverlessBuses();
     } catch (err) {
       this.logger.warn(`tick failed: ${(err as Error).message}`);
     } finally {
@@ -136,6 +137,24 @@ export class AutopilotService implements OnApplicationBootstrap, OnModuleDestroy
     }
   }
 
+  /**
+   * Buses with no human driver on shift still need someone to "see" hails —
+   * including hails from real demo visitors — or the rider waits on "Hail sent"
+   * forever. Autopilot acknowledges them after a short, human-like delay.
+   */
+  private async acknowledgeForDriverlessBuses() {
+    const pending = await this.prisma.hail.findMany({
+      where: { status: 'PENDING', createdAt: { lt: new Date(Date.now() - 4_000) } },
+      select: { id: true, busId: true },
+    });
+    const byBus = new Map<string, string[]>();
+    for (const h of pending) {
+      if (this.fleet.activeShiftId(h.busId)) continue; // a real driver acknowledges their own hails
+      byBus.set(h.busId, [...(byBus.get(h.busId) ?? []), h.id]);
+    }
+    for (const [busId, ids] of byBus) await this.hails.acknowledge(busId, ids).catch(() => undefined);
+  }
+
   /** Leaving a stop: riders further down the line hail this bus. */
   private async depart(sim: SimBus) {
     sim.atStopId = null;
@@ -152,12 +171,6 @@ export class AutopilotService implements OnApplicationBootstrap, OnModuleDestroy
         this.busy.add(rider);
         await this.hails
           .create(rider, { busId: sim.busId, lat: stop.lat + rand(-0.0006, 0.0006), lng: stop.lng + rand(-0.0006, 0.0006) })
-          .then((hail) => {
-            // No human driver? Autopilot acknowledges like an attentive one would.
-            if (!this.fleet.activeShiftId(sim.busId)) {
-              setTimeout(() => this.hails.acknowledge(sim.busId, [hail.id]).catch(() => undefined), rand(3_000, 9_000));
-            }
-          })
           .catch(() => this.busy.delete(rider));
       }
     }
@@ -186,10 +199,14 @@ export class AutopilotService implements OnApplicationBootstrap, OnModuleDestroy
     }
   }
 
+  /** Stops ahead in the direction of travel, up to the terminus (riders don't ride through the turnaround). */
   private stopsAhead(geometry: RouteGeometry, loopPos: number): string[] {
-    return geometry.route.stops
+    const stops = geometry.route.stops;
+    const terminus = geometry.directionAt(loopPos) === 'EASTBOUND' ? stops[stops.length - 1] : stops[0];
+    const toTerminus = geometry.metresUntilStop(loopPos, terminus.id);
+    return stops
       .map((s) => ({ id: s.id, m: geometry.metresUntilStop(loopPos, s.id) }))
-      .filter((s) => s.m > STOP_ARRIVAL_RADIUS_M)
+      .filter((s) => s.m > STOP_ARRIVAL_RADIUS_M && s.m <= toTerminus + 1)
       .sort((a, b) => a.m - b.m)
       .map((s) => s.id);
   }

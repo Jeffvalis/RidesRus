@@ -50,6 +50,11 @@ body {
   display: none;
 }
 
+/* Leaflet 1.9 blends tiles with plus-lighter to hide Chrome gaps; under a CSS filter that
+   blending itself draws seams, so filtered maps use normal blending instead. */
+.leaflet-container img.leaflet-tile {
+  mix-blend-mode: normal !important; /* leaflet.css loads after this file */
+}
 .rr-dark-tiles {
   filter: invert(1) hue-rotate(180deg) brightness(0.8) contrast(0.9) saturate(0.3);
 }

@@ -1,0 +1,33 @@
+{
+  "name": "ridesrus",
+  "private": true,
+  "description": "Smart bus-hailing for Lagos commuters \u2014 passenger app, driver console, fleet HQ and API.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build:core": "npm run build -w @ridesrus/core",
+    "db:start": "npm run db:start -w @ridesrus/api",
+    "db:setup": "npm run db:setup -w @ridesrus/api",
+    "dev:api": "npm run dev -w @ridesrus/api",
+    "dev:admin": "npm run dev -w @ridesrus/admin",
+    "dev:passenger": "npm run web -w @ridesrus/passenger",
+    "dev:driver": "npm run web -w @ridesrus/driver",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "postinstall": "npm run build:core"
+  },
+  "allowScripts": {
+    "@embedded-postgres/darwin-arm64": true,
+    "@embedded-postgres/darwin-x64": true,
+    "@embedded-postgres/linux-x64": true,
+    "@embedded-postgres/linux-arm64": true,
+    "prisma": true,
+    "@prisma/engines": true,
+    "esbuild": true
+  }
+}

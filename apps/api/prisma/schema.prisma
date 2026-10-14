@@ -1,0 +1,272 @@
+// RidesRus data model.
+// Invariants that money and seats depend on are enforced by Postgres itself
+// (see the CHECK constraints and partial unique indexes in the init migration),
+// not only by application code.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// ───────────── People ─────────────
+
+model Passenger {
+  id           String         @id @default(cuid())
+  name         String
+  email        String         @unique
+  phone        String?
+  passwordHash String
+  isGuest      Boolean        @default(false)
+  createdAt    DateTime       @default(now())
+  account      LedgerAccount?
+  hails        Hail[]
+  trips        Trip[]
+  topUps       TopUp[]
+}
+
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+model Driver {
+  id        String     @id @default(cuid())
+  /// Permanent fleet ID printed on the driver's badge, e.g. RR-9942.
+  code      String     @unique
+  name      String
+  phone     String     @unique
+  createdAt DateTime   @default(now())
+  shiftKeys ShiftKey[]
+  shifts    Shift[]
+}
+
+/// One-time 6-digit access key an admin issues so a driver can start a shift on a specific bus.
+model ShiftKey {
+  id        String    @id @default(cuid())
+  driverId  String
+  driver    Driver    @relation(fields: [driverId], references: [id])
+  busId     String
+  bus       Bus       @relation(fields: [busId], references: [id])
+  pinHash   String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([driverId])
+}
+
+model Shift {
+  id        String    @id @default(cuid())
+  driverId  String
+  driver    Driver    @relation(fields: [driverId], references: [id])
+  busId     String
+  bus       Bus       @relation(fields: [busId], references: [id])
+  startedAt DateTime  @default(now())
+  expiresAt DateTime
+  endedAt   DateTime?
+  trips     Trip[]
+  actions   DriverActionLog[]
+
+  @@index([busId, endedAt])
+}
+
+/// ───────────── Network ─────────────
+
+model Route {
+  id          String @id
+  code        String @unique
+  name        String
+  fareKobo    Int
+  avgSpeedMps Float
+  /// Road geometry west → east: [{lat,lng}, …]
+  path        Json
+  stops       Stop[]
+  buses       Bus[]
+}
+
+model Stop {
+  id      String @id
+  routeId String
+  route   Route  @relation(fields: [routeId], references: [id])
+  name    String
+  lat     Float
+  lng     Float
+  seq     Int
+
+  @@unique([routeId, seq])
+}
+
+model Bus {
+  id        String     @id @default(cuid())
+  /// Display code painted on the bus, e.g. RR-102.
+  code      String     @unique
+  plate     String     @unique
+  capacity  Int
+  /// Seats taken. Changed only inside boarding/drop-off transactions; CHECK 0 ≤ occupied ≤ capacity.
+  occupied  Int        @default(0)
+  routeId   String
+  route     Route      @relation(fields: [routeId], references: [id])
+  shifts    Shift[]
+  shiftKeys ShiftKey[]
+  hails     Hail[]
+  trips     Trip[]
+}
+
+/// ───────────── Journeys ─────────────
+
+enum HailStatus {
+  PENDING
+  ACKNOWLEDGED
+  BOARDED
+  CANCELLED
+  EXPIRED
+}
+
+model Hail {
+  id             String     @id @default(cuid())
+  passengerId    String
+  passenger      Passenger  @relation(fields: [passengerId], references: [id])
+  busId          String
+  bus            Bus        @relation(fields: [busId], references: [id])
+  stopId         String
+  status         HailStatus @default(PENDING)
+  lat            Float
+  lng            Float
+  createdAt      DateTime   @default(now())
+  expiresAt      DateTime
+  acknowledgedAt DateTime?
+  resolvedAt     DateTime?
+  trip           Trip?
+
+  @@index([busId, status])
+  @@index([passengerId, status])
+  @@index([createdAt])
+}
+
+enum TripStatus {
+  BOARDED
+  COMPLETED
+  VOIDED
+}
+
+model Trip {
+  id              String     @id @default(cuid())
+  passengerId     String
+  passenger       Passenger  @relation(fields: [passengerId], references: [id])
+  busId           String
+  bus             Bus        @relation(fields: [busId], references: [id])
+  shiftId         String?
+  shift           Shift?     @relation(fields: [shiftId], references: [id])
+  hailId          String?    @unique
+  hail            Hail?      @relation(fields: [hailId], references: [id])
+  boardStopId     String?
+  dropoffStopId   String?
+  status          TripStatus @default(BOARDED)
+  fareKobo        Int
+  /// The client's scan key — a retried scan returns the same trip instead of charging twice.
+  idempotencyKey  String     @unique
+  fareTransferId  String?    @unique
+  boardedAt       DateTime   @default(now())
+  completedAt     DateTime?
+  rating          Int?
+  comment         String?
+  ratedAt         DateTime?
+
+  @@index([busId, status])
+  @@index([passengerId, boardedAt])
+  @@index([boardedAt])
+}
+
+/// ───────────── Money (double-entry ledger) ─────────────
+
+enum AccountKind {
+  PASSENGER_WALLET
+  FARE_REVENUE
+  GATEWAY_CLEARING
+  PROMO_EXPENSE
+}
+
+model LedgerAccount {
+  id          String        @id @default(cuid())
+  kind        AccountKind
+  passengerId String?       @unique
+  passenger   Passenger?    @relation(fields: [passengerId], references: [id])
+  /// Cached sum of entries, updated in the same transaction as each posting. CHECK ≥ 0 for wallets.
+  balanceKobo Int           @default(0)
+  createdAt   DateTime      @default(now())
+  entries     LedgerEntry[]
+}
+
+enum TransferKind {
+  TOPUP
+  FARE
+  REFUND
+  PROMO
+}
+
+/// A balanced movement of money. Entries of one transfer always sum to zero.
+model Transfer {
+  id          String        @id @default(cuid())
+  kind        TransferKind
+  /// Business idempotency key (top-up reference, trip id, …).
+  reference   String        @unique
+  description String
+  createdAt   DateTime      @default(now())
+  entries     LedgerEntry[]
+}
+
+model LedgerEntry {
+  id          String        @id @default(cuid())
+  transferId  String
+  transfer    Transfer      @relation(fields: [transferId], references: [id])
+  accountId   String
+  account     LedgerAccount @relation(fields: [accountId], references: [id])
+  amountKobo  Int
+  createdAt   DateTime      @default(now())
+
+  @@index([accountId, createdAt])
+}
+
+enum TopUpStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+model TopUp {
+  id            String      @id @default(cuid())
+  passengerId   String
+  passenger     Passenger   @relation(fields: [passengerId], references: [id])
+  reference     String      @unique
+  amountKobo    Int
+  status        TopUpStatus @default(PENDING)
+  provider      String
+  providerTxId  String?
+  transferId    String?     @unique
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([passengerId, createdAt])
+}
+
+/// ───────────── Driver offline sync ─────────────
+
+/// Every driver action replayed from the tablet's offline queue is recorded by its
+/// idempotency key, so a flaky network can retry forever without double effects.
+model DriverActionLog {
+  idempotencyKey String   @id
+  shiftId        String
+  shift          Shift    @relation(fields: [shiftId], references: [id])
+  type           String
+  ok             Boolean
+  error          String?
+  createdAt      DateTime @default(now())
+}

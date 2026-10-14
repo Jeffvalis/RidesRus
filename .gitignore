@@ -1,34 +1,31 @@
-# ===== Environment Variables (NEVER commit these) =====
+# Secrets
 .env
-.env.local
-.env.development
-.env.production
-**/.env
-**/.env.local
+.env.*
+!.env.example
 
-# ===== Node =====
+# Dependencies & builds
 node_modules/
-**/node_modules/
-
-# ===== Next.js =====
+dist/
 .next/
 out/
-**/.next/
-
-# ===== Expo / React Native =====
 .expo/
-**/.expo/
+web-build/
+coverage/
+*.tsbuildinfo
+apps/api/src/generated/
+
+# Local database (embedded Postgres data dir)
+.data/
+
+# Native build artefacts / signing
+ios/
+android/
 *.jks
 *.p8
 *.p12
 *.key
 *.mobileprovision
 
-# ===== NestJS / Build outputs =====
-dist/
-**/dist/
-
-# ===== Misc =====
+# Misc
 .DS_Store
-Thumbs.db
 *.log
